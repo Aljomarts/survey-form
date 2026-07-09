@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Martisano - Calculator App</title>
+  <style>
+    :root {
+      --felt: #0b3d2e;
+      --felt-dark: #062a20;
+      --gold: #d4af37;
+      --gold-dim: #a9872c;
+      --cream: #f4ecd8;
+      --red: #b3261e;
+      --charcoal: #171512;
+      --card-white: #f7f3ea;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(circle at 50% 0%, #0f4a37 0%, var(--felt) 45%, var(--felt-dark) 100%);
+      font-family: 'Courier New', Courier, monospace;
+      color: var(--cream);
+      padding: 24px;
+      overflow-x: hidden;
+    }
+
+    .brand {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      letter-spacing: 3px;
+      font-family: Georgia, 'Times New Roman', serif;
+      font-weight: 700;
+      color: var(--gold);
+      text-shadow: 0 0 12px rgba(212, 175, 55, .35);
+    }
+
+    .brand small {
+      display: block;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 2px;
+      font-size: 10px;
+      color: var(--cream);
+      opacity: .6;
+      margin-top: 2px;
+    }
+
+    .device {
+      width: 340px;
+      background: linear-gradient(160deg, #1f1c17, var(--charcoal) 60%);
+      border-radius: 26px;
+      padding: 20px;
+      box-shadow:
+        0 30px 60px rgba(0, 0, 0, .55),
+        inset 0 0 0 2px rgba(212, 175, 55, .25);
+      position: relative;
+    }
+
+    .display {
+      background: #0d1210;
+      border-radius: 14px;
+      padding: 22px 18px 16px;
+      margin-bottom: 16px;
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, .7);
+      border: 1px solid rgba(212, 175, 55, .2);
+    }
+
+    .display .expr {
+      min-height: 16px;
+      font-size: 13px;
+      color: rgba(244, 236, 216, .55);
+      text-align: right;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .display .val {
+      font-size: 38px;
+      text-align: right;
+      color: var(--gold);
+      text-shadow: 0 0 10px rgba(212, 175, 55, .3);
+      overflow-x: hidden;
+      white-space: nowrap;
+      min-height: 46px;
+    }
+
+    .display .tag {
+      margin-top: 6px;
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: rgba(244, 236, 216, .4);
+      text-align: right;
+      min-height: 12px;
+    }
+
+    .pad {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    button.key {
+      border: none;
+      border-radius: 12px;
+      padding: 16px 0;
+      font-size: 17px;
+      font-family: inherit;
+      cursor: pointer;
+      background: #232019;
+      color: var(--cream);
+      box-shadow: 0 3px 0 rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .04);
+      transition: transform .05s ease, filter .15s ease;
+      position: relative;
+    }
+
+    button.key:active {
+      transform: translateY(2px);
+    }
+
+    .key.num {
+      background: #2a271f;
+    }
+
+    .key.op {
+      background: linear-gradient(160deg, #1a3b2e, #0f2b21);
+      color: var(--gold);
+    }
+
+    .key.op.locked::after {
+      content: "🔒";
+      position: absolute;
+      top: 3px;
+      right: 6px;
+      font-size: 10px;
+    }
+
+    .key.op.locked {
+      filter: saturate(.4) brightness(.75);
+    }
+
+    .key.eq {
+      grid-column: span 2;
+      background: linear-gradient(160deg, var(--red), #7d1712);
+      color: var(--cream);
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    .key.clear {
+      background: #3a1f1c;
+      color: #e8a49e;
+    }
+
+    /* ---------- Overlay ---------- */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 10, 7, .86);
+      backdrop-filter: blur(3px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 20px;
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 380px;
+      background: linear-gradient(170deg, #0f4632, var(--felt-dark));
+      border: 2px solid var(--gold);
+      border-radius: 20px;
+      padding: 22px;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(212, 175, 55, .25);
+    }
+
+    .modal h2 {
+      margin: 0 0 4px;
+      font-family: Georgia, serif;
+      color: var(--gold);
+      letter-spacing: 1px;
+    }
+
+    .modal p.sub {
+      margin: 0 0 18px;
+      font-size: 12px;
+      color: rgba(244, 236, 216, .7);
+    }
+
+    .table {
+      background: radial-gradient(circle at 50% 20%, #146043, #08301f);
+      border-radius: 14px;
+      padding: 16px 10px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(212, 175, 55, .3);
+    }
+
+    .who {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: rgba(244, 236, 216, .6);
+      margin-bottom: 6px;
+    }
+
+    .hand {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      min-height: 64px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .card {
+      width: 40px;
+      height: 58px;
+      background: var(--card-white);
+      border-radius: 6px;
+      color: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 15px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, .4);
+      animation: deal .35s ease;
+    }
+
+    .card.red {
+      color: var(--red);
+    }
+
+    .card.back {
+      background: repeating-linear-gradient(45deg, #1a3b2e, #1a3b2e 4px, #0f2b21 4px, #0f2b21 8px);
+      border: 1px solid var(--gold);
+    }
+
+    @keyframes deal {
+      from {
+        transform: translateY(-30px) rotate(-8deg);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0) rotate(0);
+        opacity: 1;
+      }
+    }
+
+    .totals {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: rgba(244, 236, 216, .7);
+      padding: 0 4px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 11px 16px;
+      font-family: inherit;
+      font-weight: bold;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .btn-gold {
+      background: var(--gold);
+      color: #241d0a;
+    }
+
+    .btn-red {
+      background: var(--red);
+      color: var(--cream);
+    }
+
+    .fine {
+      margin-top: 12px;
+      font-size: 9px;
+      color: rgba(244, 236, 216, .35);
+      line-height: 1.4;
+    }
+
+    .result-banner {
+      font-size: 13px;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    .result-banner b {
+      color: var(--gold);
+    }
+
+    .result-banner.lose b {
+      color: var(--red);
+    }
+
+    /* ---------- Celebration Card Pop Up Animation ---------- */
+    .celebration-card {
+      background: linear-gradient(135deg, #f7f3ea 0%, #eadabe 100%);
+      color: #1a3b2e;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), inset 0 0 0 3px var(--gold);
+      max-width: 320px;
+      width: 100%;
+      text-align: center;
+      border: none;
+      animation: popUp 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+    }
+
+    @keyframes popUp {
+      0% {
+        transform: scale(0.4) translateY(40px);
+        opacity: 0;
+      }
+
+      100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .celebration-card h2 {
+      color: #062a20;
+      font-family: Georgia, serif;
+      margin-top: 0;
+      font-size: 22px;
+      letter-spacing: 1px;
+    }
+
+    .celebration-card .badge {
+      display: inline-block;
+      background: #0b3d2e;
+      color: var(--gold);
+      font-size: 28px;
+      padding: 10px 24px;
+      border-radius: 8px;
+      margin: 14px 0;
+      font-weight: bold;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+
+    .celebration-card p {
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 0;
+    }
+
+    /* ---------- Confetti Elements ---------- */
+    .confetti-piece {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      z-index: 100;
+      opacity: 0;
+      animation: confettiFall 2.5s linear forwards;
+    }
+
+    @keyframes confettiFall {
+      0% {
+        transform: translateY(-50px) rotate(0deg);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateY(105vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="brand">allan's normal calc™
+    <small>calc stands for calculator btw chat. for those who don't know</small>
+  </div>
+
+  <div class="device">
+    <div class="display">
+      <div class="expr" id="expr">&nbsp;</div>
+      <div class="val" id="val">0</div>
+      <div class="tag" id="tag">&nbsp;</div>
+    </div>
+
+    <div class="pad" id="pad">
+      <button class="key clear" data-act="clear">AC</button>
+      <button class="key op" data-sym="(" data-locked="true">(</button>
+      <button class="key op" data-sym=")" data-locked="true">)</button>
+      <button class="key op" data-sym="√" data-locked="true">√</button>
+
+      <button class="key op" data-sym="π" data-locked="true">π</button>
+      <button class="key op" data-sym="x²" data-locked="true">x²</button>
+      <button class="key op" data-sym="1/x" data-locked="true">1/x</button>
+      <button class="key op" data-sym="+/-" data-locked="true">±</button>
+
+      <button class="key num" data-num="7">7</button>
+      <button class="key num" data-num="8">8</button>
+      <button class="key num" data-num="9">9</button>
+      <button class="key op" data-op="%" data-locked="true">%</button>
+
+      <button class="key num" data-num="4">4</button>
+      <button class="key num" data-num="5">5</button>
+      <button class="key num" data-num="6">6</button>
+      <button class="key op" data-op="÷" data-locked="true">÷</button>
+
+      <button class="key num" data-num="1">1</button>
+      <button class="key num" data-num="2">2</button>
+      <button class="key num" data-num="3">3</button>
+      <button class="key op" data-op="×" data-locked="true">×</button>
+
+      <button class="key num" data-num="0" style="grid-column: span 2;">0</button>
+      <button class="key num" data-num=".">.</button>
+      <button class="key op" data-op="-" data-locked="false">−</button>
+
+      <button class="key eq" data-act="equals" style="grid-column: span 3;">=</button>
+      <button class="key op" data-op="+" data-locked="false">+</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="subOverlay">
+    <div class="modal">
+      <h2>Operator Locked</h2>
+      <p class="sub" id="lockPromptText">This operator is currently locked. Unlock all via subscription or buy this one
+        permanently.</p>
+      <div class="btn-row" style="margin-top:6px; flex-direction: column; gap: 10px;">
+        <button class="btn btn-gold" id="subYesBtn">Subscribe All: $10/mo</button>
+        <button class="btn btn-red" id="buySingleBtn">Unlock Individual Key: $1.99</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="payOverlay">
+    <div class="modal">
+      <h2>Answer Locked</h2>
+      <p class="sub">Your result is ready. Choose how you'd like to unlock it.</p>
+
+      <div class="btn-row" style="margin-top:6px;">
+        <button class="btn btn-gold" id="payDirectBtn">Pay $25 — Absolute Correct Answer</button>
+      </div>
+
+      <div style="margin:14px 0; font-size:11px; color:rgba(244,236,216,.5); letter-spacing:1px;">— or —</div>
+
+      <div class="btn-row">
+        <button class="btn btn-red" id="playBtn">Play Blackjack — Free Shot at True Answer (~21% Real Success
+          Chance)</button>
+      </div>
+      <div class="fine">Win, and get the absolute correct answer for free.<br>Lose, or accept the baseline penalty
+        answer (drifted).</div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="gameOverlay">
+    <div class="modal">
+      <h2>Blackjack for the Answer</h2>
+      <p class="sub">Good luck and Play Responsibly.</p>
+
+      <div class="table">
+        <div class="who">DEALER</div>
+        <div class="hand" id="dealerHand"></div>
+        <div class="totals"><span id="dealerTotalLabel">— </span><span></span></div>
+
+        <div class="who" style="margin-top:14px;">YOU</div>
+        <div class="hand" id="playerHand"></div>
+        <div class="totals"><span id="playerTotalLabel">—</span><span></span></div>
+      </div>
+
+      <div class="btn-row" id="gameControls">
+        <button class="btn btn-gold" id="hitBtn">Hit</button>
+        <button class="btn btn-red" id="standBtn">Stand</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="resultOverlay">
+    <div class="modal">
+      <h2 id="resultTitle">You Lost</h2>
+      <div class="result-banner" id="resultBanner"></div>
+      <div class="btn-row" id="resultButtons"></div>
+      <div class="fine" id="resultFine"></div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="celebrationOverlay">
+    <div class="celebration-card" id="celebrationCard">
+      <h2>🎉 UNLOCKED! 🎉</h2>
+      <p>Your ongoing interactions have cracked a lock!</p>
+      <div class="badge" id="unlockedOpBadge">+</div>
+      <p>This premium operator is now accessible for your calculations.</p>
+      <div style="margin-top: 14px; font-size: 10px; color: #555;">(Click anywhere outside this card to resume)</div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const exprEl = document.getElementById('expr');
+      const valEl = document.getElementById('val');
+      const tagEl = document.getElementById('tag');
+
+      let subscribed = false;
+      let purchasedOperators = new Set();
+      let usageCount = 0;
+      let blackjackWins = 0;
+      let unlockedByMilestones = new Set();
+      let queuedUnlockCelebrations = [];
+
+      let current = "0";
+      let expression = "";
+      let pendingAnswer = null;
+      let pendingKind = "equals";
+      let targetOperatorPendingUnlock = null;
+
+      const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwA_ktHesIaAhqFEzH8AZHsCuBrmNldxIz2zH_8HJqT7kqbO67bKkRUDu5bHF5Dydy/exec";
+
+      function logHandResult(won, reason) {
+        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf("PASTE_YOUR") === 0) return;
+        try {
+          fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors", // Apps Script web apps don't return CORS headers; fire-and-forget
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({
+              outcome: won ? "win" : "loss",
+              reason: reason,
+              playerTotal: typeof player !== "undefined" ? handTotal(player) : null,
+              dealerTotal: typeof dealer !== "undefined" ? handTotal(dealer) : null,
+              timestamp: new Date().toISOString()
+            })
+          });
+        } catch (e) {
+          // Never let logging break the game.
+        }
+      }
+
+      const priorityPool = ["×", "÷", "%", "(", ")"];
+      const generalPool = ["√", "π", "x²", "1/x", "+/-"];
+
+      let nextUsageMilestone = 5;
+      let milestoneGap = 6;
+
+      function checkMilestones(type) {
+        if (type === "usage") {
+          if (usageCount >= nextUsageMilestone) {
+            triggerMilestoneUnlock();
+
+            // Schedule the next milestone
+            nextUsageMilestone += milestoneGap;
+            milestoneGap++;
+          }
+        } else if (type === "win") {
+          triggerMilestoneUnlock();
+        }
+      }
+
+      function triggerMilestoneUnlock() {
+        let triggeredOp = getNextAvailableMilestoneOperator();
+        if (!triggeredOp) return;
+
+        if (triggeredOp === "(" || triggeredOp === ")") {
+          if (!unlockedByMilestones.has("(") || !unlockedByMilestones.has(")")) {
+            unlockedByMilestones.add("(");
+            unlockedByMilestones.add(")");
+            queuedUnlockCelebrations.push("( )");
+            updateLockVisuals();
+          }
+        } else if (!unlockedByMilestones.has(triggeredOp)) {
+          unlockedByMilestones.add(triggeredOp);
+          queuedUnlockCelebrations.push(triggeredOp);
+          updateLockVisuals();
+        }
+      }
+
+      function getNextAvailableMilestoneOperator() {
+        for (let op of priorityPool) {
+          if (!unlockedByMilestones.has(op)) return op;
+        }
+        let remainingLocked = generalPool.filter(op => !unlockedByMilestones.has(op));
+        if (remainingLocked.length > 0) {
+          let randomIndex = Math.floor(Math.random() * remainingLocked.length);
+          return remainingLocked[randomIndex];
+        }
+        return null;
+      }
+
+      function showQueuedCelebrations() {
+        if (queuedUnlockCelebrations.length === 0) return;
+
+        let nextOp = queuedUnlockCelebrations.shift();
+        document.getElementById('unlockedOpBadge').textContent = nextOp;
+        document.getElementById('celebrationOverlay').classList.remove('hidden');
+        rainConfetti();
+      }
+
+      function rainConfetti() {
+        const colors = ['#d4af37', '#b3261e', '#f4ecd8', '#1a3b2e', '#2a271f'];
+        for (let i = 0; i < 65; i++) {
+          const piece = document.createElement('div');
+          piece.className = 'confetti-piece';
+          piece.style.left = Math.random() * 100 + 'vw';
+          piece.style.top = '-20px';
+          piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+          piece.style.transform = `scale(${Math.random() * 0.6 + 0.4})`;
+          piece.style.animationDelay = Math.random() * 0.4 + 's';
+          piece.style.animationDuration = Math.random() * 1.5 + 1.5 + 's';
+          document.body.appendChild(piece);
+
+          setTimeout(() => piece.remove(), 3000);
+        }
+      }
+
+      const celebrationOverlay = document.getElementById('celebrationOverlay');
+      celebrationOverlay.addEventListener('click', (e) => {
+        if (e.target === celebrationOverlay) {
+          celebrationOverlay.classList.add('hidden');
+          setTimeout(showQueuedCelebrations, 500);
+        }
+      });
+
+      function isOperatorUnlocked(opSymbol) {
+        return (
+          subscribed ||
+          purchasedOperators.has(opSymbol) ||
+          unlockedByMilestones.has(opSymbol)
+        );
+      }
+
+      function updateLockVisuals() {
+        document.querySelectorAll('[data-op], [data-sym]').forEach(b => {
+          const isLockedAttr = b.dataset.locked === "true";
+          if (isLockedAttr) {
+            const symbol = b.dataset.op || b.dataset.sym;
+            if (isOperatorUnlocked(symbol)) {
+              b.classList.remove('locked');
+            } else {
+              b.classList.add('locked');
+            }
+          }
+        });
+      }
+
+      function formatTo11Digits(valueStr) {
+        let num = parseFloat(valueStr);
+        if (isNaN(num) || !isFinite(num)) return "NaN";
+
+        let rawStr = String(num);
+        if (rawStr.length <= 11) return rawStr;
+
+        if (Math.abs(num) >= 1e11 || (Math.abs(num) < 1e-4 && num !== 0)) {
+          let expStr = num.toExponential(5);
+          if (expStr.length > 11) {
+            let diff = expStr.length - 11;
+            expStr = num.toExponential(Math.max(0, 5 - diff));
+          }
+          return expStr;
+        }
+
+        let dotIndex = rawStr.indexOf('.');
+        if (dotIndex !== -1) {
+          let availableForDecimals = 11 - dotIndex;
+          if (availableForDecimals > 0) {
+            let fixedStr = num.toFixed(availableForDecimals);
+            while (fixedStr.endsWith('0') && fixedStr.includes('.')) {
+              fixedStr = fixedStr.slice(0, -1);
+            }
+            if (fixedStr.endsWith('.')) fixedStr = fixedStr.slice(0, -1);
+            return fixedStr.slice(0, 11);
+          }
+        }
+
+        return rawStr.slice(0, 11);
+      }
+
+      function render() {
+        valEl.textContent = current;
+        exprEl.textContent = expression || "\u00A0";
+      }
+
+      document.querySelectorAll('[data-num]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const n = btn.dataset.num;
+          if (n === "." && current.includes(".")) return;
+          if (current !== "0" && current.length >= 11) return;
+
+          if (current === "0" && n !== ".") { current = n; }
+          else { current += n; }
+          render();
+        });
+      });
+
+      document.querySelectorAll('[data-op]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const opSym = btn.dataset.op;
+          const locked = btn.dataset.locked === "true" && !isOperatorUnlocked(opSym);
+          if (locked) {
+            targetOperatorPendingUnlock = opSym;
+            document.getElementById('lockPromptText').textContent = `The "${opSym}" operator is premium. Unlock all via subscription or purchase this single key.`;
+            subOverlay.classList.remove('hidden');
+            return;
+          }
+          expression += current + " " + opSym + " ";
+          current = "0";
+          render();
+        });
+      });
+
+      const UNARY_SYMS = new Set(["√", "x²", "1/x", "+/-"]);
+
+      document.querySelectorAll('[data-sym]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const sym = btn.dataset.sym;
+          const locked = btn.dataset.locked === "true" && !isOperatorUnlocked(sym);
+          if (locked) {
+            targetOperatorPendingUnlock = sym;
+            document.getElementById('lockPromptText').textContent = `The "${sym}" operator is premium. Unlock all via subscription or purchase this single key.`;
+            subOverlay.classList.remove('hidden');
+            return;
+          }
+          const n = parseFloat(current);
+
+          if (!UNARY_SYMS.has(sym)) {
+            if (sym === "(") {
+              current = (current === "0") ? "(" : current + "(";
+            } else if (sym === ")") {
+              current += ")";
+            } else if (sym === "π") {
+              current = "3.1415926535";
+            }
+            render();
+            return;
+          }
+
+          let result;
+          switch (sym) {
+            case "√": result = Math.sqrt(n); break;
+            case "x²": result = n * n; break;
+            case "1/x": result = n === 0 ? NaN : 1 / n; break;
+            case "+/-": result = n * -1; break;
+          }
+          if (isNaN(result) || !isFinite(result)) {
+            tagEl.textContent = "nothing to calculate";
+            setTimeout(() => { tagEl.textContent = "\u00A0"; }, 1500);
+            return;
+          }
+          pendingAnswer = result;
+          pendingKind = "unary";
+          payOverlay.classList.remove('hidden');
+        });
+      });
+
+      document.querySelector('[data-act="clear"]').addEventListener('click', () => {
+        current = "0"; expression = ""; tagEl.textContent = "\u00A0";
+        render();
+      });
+
+      const subOverlay = document.getElementById('subOverlay');
+      const subYesBtn = document.getElementById('subYesBtn');
+      const buySingleBtn = document.getElementById('buySingleBtn');
+
+      subYesBtn.addEventListener('click', () => {
+        subscribed = true;
+        updateLockVisuals();
+        subOverlay.classList.add('hidden');
+      });
+
+      buySingleBtn.addEventListener('click', () => {
+        if (targetOperatorPendingUnlock) {
+          if (targetOperatorPendingUnlock === "(" || targetOperatorPendingUnlock === ")") {
+            purchasedOperators.add("(");
+            purchasedOperators.add(")");
+          } else {
+            purchasedOperators.add(targetOperatorPendingUnlock);
+          }
+          updateLockVisuals();
+        }
+        subOverlay.classList.add('hidden');
+      });
+
+      subOverlay.addEventListener('click', (e) => {
+        if (e.target === subOverlay) {
+          subOverlay.classList.add('hidden');
+        }
+      });
+
+      updateLockVisuals();
+
+      function safeEval(str) {
+        try {
+          const sanitized = str.replace(/×/g, '*').replace(/÷/g, '/').trim();
+          if (!sanitized) return NaN;
+          const result = Function('"use strict"; return (' + sanitized + ')')();
+          return typeof result === 'number' && isFinite(result) ? result : NaN;
+        } catch (e) { return NaN; }
+      }
+
+      document.querySelector('[data-act="equals"]').addEventListener('click', () => {
+        const full = expression + current;
+        const answer = safeEval(full);
+        if (isNaN(answer)) {
+          tagEl.textContent = "nothing to calculate";
+          setTimeout(() => { tagEl.textContent = "\u00A0"; }, 1500);
+          return;
+        }
+
+        usageCount++;
+        checkMilestones('usage');
+
+        pendingAnswer = answer;
+        pendingKind = "equals";
+        payOverlay.classList.remove('hidden');
+      });
+
+      const payOverlay = document.getElementById('payOverlay');
+      const payDirectBtn = document.getElementById('payDirectBtn');
+      const playBtn = document.getElementById('playBtn');
+
+      function driftedAnswer() {
+        const drift = [-2, -1, 1, 2][Math.floor(Math.random() * 4)];
+        return pendingAnswer + drift;
+      }
+
+      function applyAnswer(value) {
+        current = formatTo11Digits(String(value));
+        if (pendingKind === "equals") {
+          expression = "";
+        }
+        render();
+
+        // Safe delay popup execution until window interaction settles
+        setTimeout(showQueuedCelebrations, 600);
+      }
+
+      payDirectBtn.addEventListener('click', () => {
+        payOverlay.classList.add('hidden');
+        applyAnswer(pendingAnswer);
+      });
+
+      playBtn.addEventListener('click', () => {
+        payOverlay.classList.add('hidden');
+        startBlackjack();
+      });
+
+      const gameOverlay = document.getElementById('gameOverlay');
+      const dealerHandEl = document.getElementById('dealerHand');
+      const playerHandEl = document.getElementById('playerHand');
+      const dealerTotalLabel = document.getElementById('dealerTotalLabel');
+      const playerTotalLabel = document.getElementById('playerTotalLabel');
+      const hitBtn = document.getElementById('hitBtn');
+      const standBtn = document.getElementById('standBtn');
+      const gameControls = document.getElementById('gameControls');
+
+      const SUITS = [{ s: '♠', red: false }, { s: '♣', red: false }, { s: '♥', red: true }, { s: '♦', red: true }];
+      const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+
+      let deck, dealer, player, dealerHoleHidden;
+
+      function freshDeck() {
+        const d = [];
+        for (const suit of SUITS) {
+          for (const r of RANKS) { d.push({ r, suit }); }
+        }
+        for (let i = d.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [d[i], d[j]] = [d[j], d[i]];
+        }
+        return d;
+      }
+
+      function cardValue(card) {
+        if (card.r === 'A') return 11;
+        if (['J', 'Q', 'K'].includes(card.r)) return 10;
+        return parseInt(card.r, 10);
+      }
+
+      function handTotal(hand) {
+        let total = hand.reduce((s, c) => s + cardValue(c), 0);
+        let aces = hand.filter(c => c.r === 'A').length;
+        while (total > 21 && aces > 0) { total -= 10; aces--; }
+        return total;
+      }
+
+      function renderCard(card, hidden = false) {
+        const div = document.createElement('div');
+        if (hidden) {
+          div.className = 'card back';
+          div.textContent = '';
+        } else {
+          div.className = 'card' + (card.suit.red ? ' red' : '');
+          div.textContent = card.r + card.suit.s;
+        }
+        return div;
+      }
+
+      function renderHands(revealDealer) {
+        dealerHandEl.innerHTML = '';
+        dealer.forEach((c, i) => {
+          dealerHandEl.appendChild(renderCard(c, i === 1 && !revealDealer));
+        });
+        playerHandEl.innerHTML = '';
+        player.forEach(c => playerHandEl.appendChild(renderCard(c)));
+
+        playerTotalLabel.textContent = 'Total: ' + handTotal(player);
+        dealerTotalLabel.textContent = revealDealer
+          ? 'Total: ' + handTotal(dealer)
+          : 'Showing: ' + cardValue(dealer[0]);
+      }
+
+      function startBlackjack() {
+        deck = freshDeck();
+        player = [deck.pop(), deck.pop()];
+        dealer = [deck.pop(), deck.pop()];
+        dealerHoleHidden = true;
+        gameControls.style.display = 'flex';
+        renderHands(false);
+        gameOverlay.classList.remove('hidden');
+      }
+
+      hitBtn.addEventListener('click', () => {
+        if (deck.length === 0) deck = freshDeck();
+        player.push(deck.pop());
+        if (handTotal(player) > 21) { dealerHoleHidden = false; renderHands(true); gameControls.style.display = 'none'; setTimeout(() => endHand(false, 'bust'), 1000); return; }
+        renderHands(false);
+      });
+
+      standBtn.addEventListener('click', () => { resolveDealer(); });
+
+      // Picks a real card from the deck whose value falls in [min, max] if one
+      // exists (biasing the draw), otherwise just draws normally. This keeps
+      // every card the dealer shows a legitimate card — no fabricated ranks.
+      function pickBiasedCard(min, max) {
+        if (deck.length === 0) deck = freshDeck();
+        for (let i = 0; i < deck.length; i++) {
+          const v = cardValue(deck[i]);
+          if (v >= min && v <= max) {
+            return deck.splice(i, 1)[0];
+          }
+        }
+        return deck.pop();
+      }
+
+      function resolveDealer() {
+        dealerHoleHidden = false;
+        const houseEnforcedWin = Math.random() < 0.79;
+        const playerTotal = handTotal(player);
+
+        if (houseEnforcedWin && playerTotal <= 21) {
+          // Dealer keeps "hitting" real cards, nudged toward whatever beats
+          // the player, until they do (or genuinely bust trying).
+          let guard = 0;
+          while (handTotal(dealer) <= 21 && guard < 12) {
+            guard++;
+            const currentTotal = handTotal(dealer);
+            if (currentTotal > playerTotal) break; // already ahead, dealer stands
+            const needed = playerTotal + 1 - currentTotal;
+            const roomLeft = 21 - currentTotal;
+            if (roomLeft <= 0) break;
+            const min = Math.max(2, Math.min(needed, roomLeft));
+            const max = Math.min(11, roomLeft);
+            dealer.push(pickBiasedCard(min, max));
+          }
+        } else {
+          while (handTotal(dealer) < 17) {
+            if (deck.length === 0) deck = freshDeck();
+            dealer.push(deck.pop());
+          }
+        }
+
+        renderHands(true);
+        gameControls.style.display = 'none';
+
+        setTimeout(() => {
+          const playerFinal = handTotal(player), dealerTotal = handTotal(dealer);
+          if (playerFinal > 21) return endHand(false, "bust");
+          if (dealerTotal > 21) return endHand(true, "dealer bust");
+          if (playerFinal > dealerTotal) return endHand(true, "higher hand");
+          if (playerFinal < dealerTotal) return endHand(false, "dealer higher");
+          return endHand(false, "push");
+        }, 700);
+      }
+
+      function endHand(playerWon, reason) {
+        gameOverlay.classList.add('hidden');
+        if (playerWon) {
+          blackjackWins++;
+          checkMilestones('win');
+          showResult(true, reason);
+        } else {
+          showResult(false, reason);
+        }
+      }
+
+      const resultOverlay = document.getElementById('resultOverlay');
+      const resultTitle = document.getElementById('resultTitle');
+      const resultBanner = document.getElementById('resultBanner');
+      const resultButtons = document.getElementById('resultButtons');
+      const resultFine = document.getElementById('resultFine');
+
+      function showResult(won, reason) {
+        resultOverlay.classList.remove('hidden');
+        resultButtons.innerHTML = '';
+        if (won) {
+          resultTitle.textContent = "You Actually Won!?";
+          resultBanner.classList.remove('lose');
+          resultBanner.innerHTML = `Against all odds, you won by a ${reason}!`;
+          resultFine.textContent = "You won this time. Enjoy while it lasts.";
+          const okBtn = document.createElement('button');
+          okBtn.className = 'btn btn-gold';
+          okBtn.textContent = 'Take my Answer';
+          okBtn.addEventListener('click', () => {
+            resultOverlay.classList.add('hidden');
+            applyAnswer(pendingAnswer);
+          });
+          resultButtons.appendChild(okBtn);
+        } else {
+          resultTitle.textContent = "You Lost";
+          resultBanner.classList.add('lose');
+          resultBanner.innerHTML = `The house wins by a ${reason}. Your free shot unfortunately didn't pay off.`;
+          resultFine.textContent = "Time to pay up, loser.";
+
+          const payFine = document.createElement('button');
+          payFine.className = 'btn btn-red';
+          payFine.textContent = 'Pay $50 for Compensation';
+          payFine.addEventListener('click', () => {
+            resultOverlay.classList.add('hidden');
+            applyAnswer(driftedAnswer());
+          });
+
+          resultButtons.appendChild(payFine);
+        }
+      }
+
+      render();
+    })();
+  </script>
+</body>
+
+</html>
